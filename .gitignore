@@ -1,0 +1,16 @@
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/*.tsbuildinfo
+frontend/.env
+frontend/.env*.local
+
+# Android / Gradle
+android/.gradle/
+android/local.properties
+android/app/build/
+android/gradle/wrapper/gradle-wrapper.jar
+
+# Build outputs
+/dist/

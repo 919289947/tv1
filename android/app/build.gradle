@@ -1,0 +1,70 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.libretv.tv'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.libretv.tv'
+        minSdk 21
+        targetSdk 28
+        versionCode 22101
+        versionName '2.21.1-tv'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
+
+
+// APK 必须包含完整 Next.js 静态导出资源；不允许把空壳或过期资源打成 APK。
+tasks.register('verifyLibreTvAssets') {
+    doLast {
+        def webRoot = file('src/main/assets')
+        def indexFile = new File(webRoot, 'index.html')
+        def nextStatic = new File(webRoot, '_next/static')
+        def sourcePack = new File(webRoot, 'source-pack-20261103.json')
+        if (!indexFile.isFile() || indexFile.length() < 1024) {
+            throw new GradleException('缺少有效的 LibreTV index.html。请先运行 tools/build-android-tv.sh。')
+        }
+        if (!nextStatic.isDirectory()) {
+            throw new GradleException('缺少 _next/static，拒绝生成不完整 APK。')
+        }
+        def jsFiles = fileTree(nextStatic).matching { include '**/*.js' }.files
+        def cssFiles = fileTree(nextStatic).matching { include '**/*.css' }.files
+        if (jsFiles.isEmpty() || cssFiles.isEmpty()) {
+            throw new GradleException('Next.js JS/CSS 资源不完整，拒绝生成 APK。')
+        }
+        if (!sourcePack.isFile()) {
+            throw new GradleException('缺少可选的 2026-11-03 源集合文件。')
+        }
+        def html = indexFile.getText('UTF-8')
+        if (html.contains('ANDROID_TV_FRONTEND_NOT_BUILT') || html.contains('README_BUILD_REQUIRED')) {
+            throw new GradleException('检测到占位页面，拒绝生成伪成品 APK。')
+        }
+        if (new File(webRoot, 'README_BUILD_REQUIRED.txt').exists()) {
+            throw new GradleException('检测到构建占位标记，拒绝生成 APK。')
+        }
+        logger.lifecycle("LibreTV assets verified: ${jsFiles.size()} JS chunks, ${cssFiles.size()} CSS chunks")
+    }
+}
+tasks.named('preBuild').configure { dependsOn('verifyLibreTvAssets') }

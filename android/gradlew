@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Thin launcher: bootstrap/check the checksum-pinned official Wrapper JAR every run.
+set -eu
+APP_HOME="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+"$APP_HOME/../tools/bootstrap-gradle-wrapper.sh"
+if [ ! -f "$WRAPPER_JAR" ]; then
+  echo "ERROR: Gradle Wrapper JAR is unavailable; refusing to invoke system Gradle." >&2
+  exit 34
+fi
+exec java ${JAVA_OPTS:-} ${GRADLE_OPTS:-} "-Dorg.gradle.appname=gradlew" -classpath "$WRAPPER_JAR" org.gradle.wrapper.GradleWrapperMain "$@"
